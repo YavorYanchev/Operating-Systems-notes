@@ -1,0 +1,165 @@
+Задача 1:
+Нека Йордан (накратко Данчо) е станал световно известна личност (някак си) и всеки му знае името, но е станал кофти известена личност, толкова кофти, че буквите от краткото му име вече са забранени за изписване и на тяхно място изписваме символа * (астериск, звездичка).
+Коригирайте нежеланите букви във файла подаден като първи входен параметър чрез системни примитиви за работа с файлове под C.
+
+Примерно съдържание на файла:
+
+s61xxx:x:1129:502:Danail Benov, SI, kx, gx:/home/SI/s61xxx:/bin/bash
+s61xxx:x:1158:502:Diqn Doichev, SI, kx, gx:/home/SI/s61xxx:/bin/bash
+s61xxx:x:1126:502:Dancho Danchov, SI, kx, gx:/home/SI/s61xxx:/bin/bash
+s61xxx:x:1159:502:Jordan Stoychkov, SI, kx, gx:/home/SI/s61xxx:/bin/bash
+s61xxx:x:1123:502:Martin Angelow, SI, kx, gx:/home/SI/forgot_my_password:/bin/bash
+s61xxx:x:1125:502:Stanimir Dimitrov, SI, kx, gx:/home/SI/s61xxx:/bin/bash
+s61xxx:x:1157:502:Vladimir Genchev, SI, kx, gx:/home/SI/s61xxx:/bin/bash
+s61xxx:x:1121:502:Miroslav Nikolov, SI, kx, gx:/home/SI/s61xxx:/bin/bash
+
+//Решение:
+#include <fcntl.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+main(int argc, char* argv[]){
+        int fd1,fd2;
+        char c;
+
+        if ( (fd1=open(argv[1], O_RDONLY,0400)) == -1 ){
+                write(2, "error", 6);
+                exit(-1);
+        }
+
+        if ( (fd2=open("file-k4-output", O_CREAT|O_TRUNC|O_WRONLY)) == -1 ){
+                write(2, "error", 6);
+                exit(-1);
+        }
+
+        while( read(fd1, &c, 1) ){
+                write(1,&c,1);
+                if(c=='D' || c=='a' || c=='n' || c=='c' || c=='h' || c=='o') c='*';
+                write(fd2, &c, 1);
+        }
+
+        close(fd1);
+        close(fd2);
+}
+
+Задача 2:
+Условие на задачата с човешки думи:
+Баща се прибира от работа и заварва сина си да играе на компютъра, вместо да си пише домашните.
+Бащата се намръщва и му казва, че няма да излезе от стаята, докато не си напише домашното по литература,
+което представлява препис на страница 56 и страница 57 от учебника в тетрадката.
+
+Условие на задачата с нечовешки думи:
+Напишете командна процедура на C, приемаща два аргумента на командния си ред. 
+Нека програмата създава нов процес, като заставя процесът баща да изчака завършването на процеса син.
+Процесът син има за задача да отвори в режим на четене файл, подаден като първи входен аргумент на програмата.
+След което започва да прелива съдържанието на отворения файл за четене в друг файл, подаден ѝ като втори аргумент, който трябва да отвори в
+режим на писане (ако файлът отворен в режим на писане съществува, да добавя съдържанието към края на файла. Ако 
+несъществува, да го създаде).
+Когато приключи с преливането на съдържанието на файловете, процесът син трябва да изведе на стaндартния изход 
+текста "Father pid_of_father, i'm done!" и да изпълни команда ls, с което да потвърди, че наистина е прелял 
+информацията.
+Процесът баща проверява дали процеса син е приключил успешно изпълнението на задачата и ако е: извежда на 
+стандартния изход "Very well, pid_of_child!".
+
+
+Решение:
+#include <stdio.h> //printf
+#include <unistd.h> //execl, execlp
+#include <sys/types.h> // fork, getpid, getppid
+#include <sys/wait.h> // wait
+#include <stdlib.h> // exit
+#include <fcntl.h>
+
+main(int argc, char* argv[]){
+        int child, status, fd1, fd2;
+        char c;
+        if ( (child = fork()) > 0 ){
+                wait(&status);
+                printf("Very well, my %d!\nSee You!\n", child);
+        }
+        else{
+                fd1=open(argv[1],O_RDONLY);
+                fd2=open(argv[2],O_WRONLY|O_CREAT|O_APPEND);
+                while (read(fd1,&c,1)) write(fd2,&c,1);
+                printf("Father %d, i'm done!\n", getppid());
+                execlp("ls", "ls", 0);
+        }
+        close(fd1);
+        close(fd2);
+}
+
+Задача 3:
+Напишете командна процедура на C, която създава нов процес, който отваря два файла за писане, ако файловете съществуват ги занулява, ако несъществуват ги създава. 
+Нека единият файл е с име съвпадащо с името на първия аргумент подаден на програмата, след което записва в този файл текста "Switch1 Switch2 Switch3 " без кавичките.
+Нека вторият файл е с име съвпадащо с името на втория аргумент подаден на програмата, като в него добавя следния текст:
+eтаж 1, ФМИ.
+eтаж 2, ФМИ.
+eтаж 3, ФМИ.
+Процесът баща има за задача да изведе на стандартния изход текущата дата, последвана от следния текст извлечен от файловете подадени като входни аргументи:
+Switch1 етаж 1, ФМИ.
+Switch2 етаж 2, ФМИ.
+Switch3 етаж 3, ФМИ.
+
+Решение:
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+main (int argc, char* argv[]){
+	int status;
+        if ( fork() == 0 ){
+                int fd1, fd2;
+                char c;
+                if ((fd1 = open(argv[1], O_WRONLY| O_TRUNC|O_CREAT, 0644)) == -1){
+                        write(2, "Cannot open file", 16);
+                        exit(-1);
+                }
+                write (fd1, "Switch1 Switch2 Switch3 ", 24);
+                if(( fd2 = open(argv[2], O_WRONLY|O_TRUNC|O_CREAT, 0644)) == -1){
+                        write(2, "Cannot open file", 16);
+                        exit(-1);
+                }
+                write(fd2, "етаж 1, ФМИ.\nетаж 2, ФМИ.\nетаж 3, ФМИ.\n", 60);
+                close(fd1);
+                close(fd2);
+        }else{
+                wait(&status);
+                if ( fork() == 0 ){
+                        if ( execlp("date", "date", 0) == -1){
+                                write(2, "Error\n", 6);
+                                exit(-1);
+                        }
+                }else{
+                        wait(&status);
+                        int fd1, fd2;
+                        char c;
+                        if ((fd1 = open(argv[1], O_RDONLY, 0644)) == -1){
+                                write(2, "Cannot open file\n", 17);
+                                exit(-1);
+                        }
+
+                        if(( fd2 = open(argv[2], O_RDONLY, 0644)) == -1){
+                                write(2, "Cannot open file\n", 10);
+                                exit(-1);
+                        }
+                        while (read(fd1, &c, 1)){
+                                if (c != ' '){
+                                        write(1, &c, 1);
+                                }else{
+                                        char replacement = ' ';
+                                        write(1, &replacement, 1);
+                                        while(read(fd2, &c, 1)){
+                                                if (c != '\n'){
+                                                        write(1, &c, 1);
+                                                }else{
+                                                        char replacement2 = '\n';
+                                                        write(1, &replacement2, 1);
+                                                        break;
+                                                }//else
+                                        }//while
+                                }//else
+                        }//while
+                }//else (father second time)
+        }//else (father first time)
+}//main
